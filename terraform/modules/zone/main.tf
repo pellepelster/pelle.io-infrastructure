@@ -20,7 +20,7 @@ resource "hetznerdns_record" "root" {
 resource "hetznerdns_record" "spf" {
   zone_id = var.zone_id
   name = "@"
-  value = "v=spf1 +a +mx ?all"
+  value = "v=spf1 include:mailbox.org"
   type = "TXT"
   ttl = 60
 }
