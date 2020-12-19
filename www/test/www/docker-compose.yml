@@ -1,0 +1,22 @@
+version: "3"
+services:
+  www:
+    image: www
+    environment:
+      - "HOSTNAME=localhost.test"
+    ports:
+      - "443"
+      - "80"
+    volumes:
+      - "www-ssl:/storage/ssl"
+      - "www-data:/storage/html"
+      - "www-logs:/storage/logs"
+
+volumes:
+  www-logs:
+  www-ssl:
+    external:
+      name: www-test-ssl
+  www-data:
+    external:
+      name: www-test-data
