@@ -73,7 +73,7 @@ function terraform_wrapper_do() {
   shift || true
   shift || true
 
-  if [ ! -f "${directory}/.terraform" ]; then
+  if [ ! -d "${directory}/.terraform" ]; then
     terraform_wrapper "${directory}" init -lock=false
   fi
 
@@ -115,7 +115,7 @@ function task_infra_storage {
 
 function task_ssh_instance {
   local public_ip="$(terraform_wrapper "terraform/instance" "output" "-json" | jq -r '.public_ip.value')"
-  ssh root@${public_ip}
+  ssh root@${public_ip} "$@"
 }
 
 function create_snakeoil_certificates {

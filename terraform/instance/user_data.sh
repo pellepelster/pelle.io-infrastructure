@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -o pipefail -o errexit -o nounset
+
 export DEBIAN_FRONTEND=noninteractive
 
 echo "${ssh_identity_ecdsa_key}" | base64 -d > /etc/ssh/ssh_host_ecdsa_key
@@ -16,7 +17,6 @@ chmod 600 /etc/ssh/ssh_host_ed25519_key.pub
 echo "${ssh_identity_ed25519_pub}" | base64 -d > /etc/ssh/ssh_host_ed25519_key.pub
 
 function docker_login {
-  dpkg -r --ignore-depends=golang-docker-credential-helpers golang-docker-credential-helpers
   echo "${github_token}" | docker login https://docker.pkg.github.com -u ${github_owner} --password-stdin
 }
 
@@ -41,11 +41,19 @@ function update_system {
 }
 
 function install_prerequisites {
-    apt-get install --no-install-recommends -qq -y \
-        docker.io \
-        docker-compose \
-        gnupg2 \
-        pass
+  apt-get install --no-install-recommends -qq -y \
+    docker.io \
+    docker-compose \
+    gnupg2 \
+    pass \
+    ufw
+}
+
+function configure_ufw {
+  ufw enable
+  ufw allow ssh
+  ufw allow http
+  ufw allow https
 }
 
 function docker_systemd_config {
@@ -97,6 +105,7 @@ mount_storage
 configure_public_ip
 update_system
 install_prerequisites
+configure_ufw
 docker_login
 
 docker_systemd_config > /etc/systemd/system/docker-compose@.service
