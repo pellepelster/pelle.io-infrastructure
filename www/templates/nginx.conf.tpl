@@ -15,6 +15,13 @@ http {
     server {
         access_log /storage/logs/{{env.Getenv "HOSTNAME"}}_access.log;
 
+        gzip on;
+        gzip_vary on;
+        gzip_min_length 10240;
+        gzip_proxied expired no-cache no-store private auth;
+        gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml;
+        gzip_disable "MSIE [1-6]\.";
+
         listen       0.0.0.0:443 ssl;
 
         server_name {{env.Getenv "HOSTNAME"}};
@@ -30,7 +37,7 @@ http {
         ssl_session_tickets off;
 
         location / {
-            root /storage/html;
+            root /storage/data/www;
             index index.html;
         }
     }

@@ -46,7 +46,8 @@ function install_prerequisites {
     docker-compose \
     gnupg2 \
     pass \
-    ufw
+    ufw \
+    uuid
 }
 
 function configure_ufw {
@@ -54,6 +55,36 @@ function configure_ufw {
   ufw allow ssh
   ufw allow http
   ufw allow https
+}
+
+function sshd_config {
+cat <<-EOF
+
+LoginGraceTime 2m
+PermitRootLogin yes
+
+PasswordAuthentication no
+PubkeyAuthentication yes
+PermitEmptyPasswords no
+
+ChallengeResponseAuthentication no
+UsePAM yes
+X11Forwarding no
+PrintMotd no
+
+AcceptEnv LANG LC_*
+
+Subsystem	sftp	/usr/lib/openssh/sftp-server
+
+AuthorizedKeysFile /etc/ssh/authorized_keys/%u .ssh/authorized_keys
+
+Match User deploy
+  ChrootDirectory %h
+  ForceCommand internal-sftp
+  AllowTcpForwarding no
+  X11Forwarding no
+  PasswordAuthentication no
+EOF
 }
 
 function docker_systemd_config {
@@ -114,7 +145,17 @@ docker_compose_config > /opt/dockerfiles/www/docker-compose.yml
 
 mkdir -p /storage/www/ssl/default
 mkdir -p /storage/www/logs
-mkdir -p /storage/www/html
+mkdir -p /storage/www/data/www
+
+useradd  -s /usr/bin/nologin -d /storage/www/data/ deploy
+PASSWORD=$(uuid)
+echo -e "$${PASSWORD}\n$${PASSWORD}" | passwd deploy
+
+mkdir /etc/ssh/authorized_keys
+chown root:root /etc/ssh/authorized_keys
+chmod 755 /etc/ssh/authorized_keys
+echo "${deploy_public_key}" | base64 -d > /etc/ssh/authorized_keys/deploy
+chmod 644 /etc/ssh/authorized_keys/deploy
 
 echo "${certificate}" | base64 -d > /storage/www/ssl/default/certificate.pem
 echo "${private_key}" | base64 -d > /storage/www/ssl/default/private_key.pem
@@ -122,3 +163,6 @@ echo "${private_key}" | base64 -d > /storage/www/ssl/default/private_key.pem
 systemctl daemon-reload
 systemctl enable docker-compose@www
 systemctl start docker-compose@www
+
+sshd_config > /etc/ssh/sshd_config
+service ssh restart

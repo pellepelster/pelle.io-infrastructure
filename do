@@ -14,22 +14,16 @@ DOCKER_IMAGE_NAME="www"
 source "${DIR}/ctuhl/lib/shell/log.sh"
 source "${DIR}/ctuhl/lib/shell/ruby.sh"
 
-# snippet:trap_hook
 trap task_clean SIGINT SIGTERM ERR EXIT
-# /snippet:trap_hook
 
-# snippet:temp_dir
 TEMP_DIR="${DIR}/.tmp"
 mkdir -p "${TEMP_DIR}"
-# /snippet:temp_dir
-
 
 function task_docker_login {
   pass "infrastructure/${DOMAIN}/github_access_token_rw" | docker login https://docker.pkg.github.com -u ${GITHUB_OWNER} --password-stdin
 }
 
 function task_generate_ssh_identities {
-  generate_ssh_identity "ed25519"
   generate_ssh_identity "ecdsa"
   generate_ssh_identity "rsa"
 }
@@ -38,6 +32,13 @@ function generate_ssh_identity {
   ssh-keygen -q -N "" -t ${type} -f "${TEMP_DIR}/ssh_host_${type}_key"
   pass insert -m "infrastructure/${DOMAIN}/ssh_host_${type}_key" < "${TEMP_DIR}/ssh_host_${type}_key"
   pass insert -m "infrastructure/${DOMAIN}/ssh_host_${type}_public_key" < "${TEMP_DIR}/ssh_host_${type}_key.pub"
+}
+
+function generate_deploy_ssh_identity {
+  local type="ed25519"
+  ssh-keygen -q -N "" -t ${type} -f "${TEMP_DIR}/deploy_ssh"
+  pass insert -m "infrastructure/${DOMAIN}/deploy_ssh_key" < "${TEMP_DIR}/deploy_ssh"
+  pass insert -m "infrastructure/${DOMAIN}/deploy_ssh_public_key" < "${TEMP_DIR}/deploy_ssh.pub"
 }
 
 function task_build {
@@ -54,7 +55,6 @@ function task_usage {
   exit 1
 }
 
-# snippet:task_clean
 function task_clean {
   echo "cleaning up '${TEMP_DIR}'"
   rm -rf "${TEMP_DIR}"
@@ -65,7 +65,6 @@ function task_clean {
   docker volume rm -f pelle-www-test-ssl
   docker volume rm -f pelle-www-test-data
 }
-# /snippet:task_clean
 
 function terraform_wrapper_do() {
   local directory=${1:-}
@@ -102,6 +101,7 @@ function task_infra_instance {
   export TF_VAR_ssh_identity_rsa_pub="$(pass "infrastructure/${DOMAIN}/ssh_host_rsa_public_key" | base64 -w 0)"
   export TF_VAR_ssh_identity_ed25519_key="$(pass "infrastructure/${DOMAIN}/ssh_host_ed25519_key" | base64 -w 0)"
   export TF_VAR_ssh_identity_ed25519_pub="$(pass "infrastructure/${DOMAIN}/ssh_host_ed25519_public_key" | base64 -w 0)"
+  export TF_VAR_deploy_ssh_public_key="$(pass "infrastructure/${DOMAIN}/deploy_ssh_public_key" | base64 -w 0)"
 
   terraform_wrapper_do "terraform/instance" "$@"
 }
@@ -116,6 +116,10 @@ function task_infra_storage {
 function task_ssh_instance {
   local public_ip="$(terraform_wrapper "terraform/instance" "output" "-json" | jq -r '.public_ip.value')"
   ssh root@${public_ip} "$@"
+}
+
+function task_output {
+  terraform_wrapper "terraform/instance" "output" "-json" | jq "$@"
 }
 
 function create_snakeoil_certificates {
@@ -187,6 +191,18 @@ function task_deploy {
   docker push "${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${DOCKER_IMAGE_NAME}:latest"
 }
 
+function task_deploy_html {
+  local dir=${1:-}
+
+  pass "infrastructure/${DOMAIN}/deploy_ssh_key" > "${TEMP_DIR}/deploy_ssh"
+  chmod 600 "${TEMP_DIR}/deploy_ssh"
+
+  echo "put -R ${dir}/*" > "${TEMP_DIR}/deploy_batch"
+  echo "exit" >> "${TEMP_DIR}/deploy_batch"
+  #sftp -b "${TEMP_DIR}/deploy_batch" -i "${TEMP_DIR}/deploy_ssh" deploy@pelle.io
+  sftp -i "${TEMP_DIR}/deploy_ssh" deploy@pelle.io
+}
+
 function task_set_github_access_token_rw {
   echo "Enter the Github personal read/write access token, followed by [ENTER]:"
   read -r github_access_token
@@ -211,10 +227,6 @@ function task_set_dns_api_token {
   echo ${hetzner_dns_api_token} | pass insert -m "infrastructure/${DOMAIN}/dns_api_token"
 }
 
-function task_update_documentation() {
-  snex -source "${DIR}/POST.md" -snippets "${DIR}" -template-file "${DIR}/hugo.template"
-}
-
 ARG=${1:-}
 shift || true
 case ${ARG} in
@@ -222,15 +234,17 @@ case ${ARG} in
   run) task_run "$@" ;;
   test) task_test "$@" ;;
   deploy) task_deploy "$@" ;;
+  deploy-html) task_deploy_html "$@" ;;
+  output) task_output "$@" ;;
   infra-instance) task_infra_instance "$@" ;;
   infra-storage) task_infra_storage "$@" ;;
   ssh-instance) task_ssh_instance "$@" ;;
   generate-ssh-identities) task_generate_ssh_identities ;;
+  generate-deploy-ssh-identity) generate_deploy_ssh_identity ;;
   set-github-access-token-rw) task_set_github_access_token_rw ;;
   set-github-access-token-ro) task_set_github_access_token_ro ;;
   set-cloud-api-token) task_set_cloud_api_token ;;
   set-dns-api-token) task_set_dns_api_token ;;
   docker-login) task_docker_login ;;
-  update-documentation) task_update_documentation ;;
   *) task_usage ;;
 esac

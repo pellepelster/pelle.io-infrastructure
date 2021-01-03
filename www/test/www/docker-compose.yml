@@ -9,7 +9,7 @@ services:
       - "80"
     volumes:
       - "www-ssl:/storage/ssl"
-      - "www-data:/storage/html"
+      - "www-data:/storage/www"
       - "www-logs:/storage/logs"
 
 volumes:

@@ -24,6 +24,9 @@ data "template_file" "user_data" {
 
     certificate = base64encode(acme_certificate.default_certificate.certificate_pem)
     private_key = base64encode(acme_certificate.default_certificate.private_key_pem)
+
+    deploy_public_key = var.deploy_ssh_public_key
+    
   }
 }
 
