@@ -1,0 +1,17 @@
+version: "3"
+services:
+  invoice-ninja:
+    image: invoice-ninja
+    environment:
+      - "HOSTNAME=localhost.test"
+    ports:
+      - "8080:8080"
+  invoice-ninja-db:
+    image: mysql
+    environment:
+      MYSQL_DATABASE: ninjadb
+      MYSQL_USER: ninjauser
+      MYSQL_ROOT_PASSWORD: ninjapassword
+
+volumes:
+  ninja-data:
