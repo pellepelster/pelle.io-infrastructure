@@ -15,6 +15,9 @@ resource "acme_registration" "registration" {
 resource "acme_certificate" "default_certificate" {
   account_key_pem = acme_registration.registration.account_key_pem
   common_name = var.domain
+  subject_alternative_names = [
+    "*.${var.domain}"]
+
 
   dns_challenge {
     provider = "hetzner"

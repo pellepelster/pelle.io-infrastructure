@@ -9,7 +9,10 @@ GITHUB_REPOSITORY="pelle.io-infrastructure"
 
 DOCKER_REGISTRY="docker.pkg.github.com"
 DOCKER_REPOSITORY="${GITHUB_OWNER}/${GITHUB_REPOSITORY}"
-DOCKER_IMAGE_NAME="www"
+DOCKER_IMAGE_NAME_WWW="www"
+
+DOCKER_ARGS="--pull --no-cache"
+DOCKER_ARGS=""
 
 source "${DIR}/ctuhl/lib/shell/log.sh"
 source "${DIR}/ctuhl/lib/shell/ruby.sh"
@@ -44,9 +47,8 @@ function generate_deploy_ssh_identity {
 function task_build {
   (
     cd "${DIR}/www"
-    docker build -t ${DOCKER_IMAGE_NAME} -f Dockerfile .
-    docker tag "${DOCKER_IMAGE_NAME}" "${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${DOCKER_IMAGE_NAME}:latest"
-    #docker tag "${DOCKER_IMAGE_NAME}" "${REGISTRY}/${REPOSITORY}/${DOCKER_IMAGE_NAME}:${TAG}"
+    docker build ${DOCKER_ARGS} -t ${DOCKER_IMAGE_NAME_WWW} -f Dockerfile .
+    docker tag "${DOCKER_IMAGE_NAME_WWW}" "${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${DOCKER_IMAGE_NAME_WWW}:latest"
   )
 }
 
@@ -188,7 +190,7 @@ function task_run() {
 }
 
 function task_deploy {
-  docker push "${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${DOCKER_IMAGE_NAME}:latest"
+  docker push "${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${DOCKER_IMAGE_NAME_WWW}:latest"
 }
 
 function task_deploy_html {
