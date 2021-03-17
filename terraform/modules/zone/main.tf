@@ -60,7 +60,7 @@ resource "hetznerdns_record" "ns_helium" {
 resource "hetznerdns_record" "ns_hydrogen" {
   zone_id = var.zone_id
   name = "@"
-  value = "hydrogen.ns.hetzner.de."
+  value = "hydrogen.ns.hetzner.com."
   type = "NS"
   ttl = 60
 }
@@ -68,7 +68,7 @@ resource "hetznerdns_record" "ns_hydrogen" {
 resource "hetznerdns_record" "ns_oxygen" {
   zone_id = var.zone_id
   name = "@"
-  value = "oxygen.ns.hetzner.de."
+  value = "oxygen.ns.hetzner.com."
   type = "NS"
   ttl = 60
 }

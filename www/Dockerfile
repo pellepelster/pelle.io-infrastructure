@@ -7,8 +7,10 @@ ENV GOMPLATE_VERION="v3.8.0"
 ENV GOMPLATE_CHECKSUM="847f7d9fc0dc74c33188c2b0d0e9e4ed9204f67c36da5aacbab324f8bfbf29c9"
 # /snippet:gomplate_info
 
+ENV DEBIAN_FRONTEND="noninteractive"
+
 RUN apt-get update && \
-    apt-get dist-upgrade
+    apt-get dist-upgrade -y --no-install-recommends -qq -y
 
 RUN apt-get install -y --no-install-recommends -qq -y \
     nginx curl ca-certificates awstats

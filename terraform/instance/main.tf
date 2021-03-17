@@ -8,7 +8,7 @@ terraform {
 
     hcloud = {
       source = "hetznercloud/hcloud"
-      version = "1.23.0"
+      version = "1.24.1"
     }
 
     template = {
@@ -17,7 +17,7 @@ terraform {
 
     acme = {
       source = "vancluever/acme"
-      version = "1.6.3"
+      version = "2.1.2"
     }
   }
 
